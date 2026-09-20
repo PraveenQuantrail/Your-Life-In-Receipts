@@ -9,22 +9,20 @@ const DATAKEY = "YLIR-data";
 function GetData() {
   return new Promise((res, rej) => {
     try {
-      const isFind = localStorage?.getItem(DATAKEY);
-      if (!isFind) {
-        localStorage?.setItem(DATAKEY, JSON.stringify([]));
+      const raw = localStorage.getItem(DATAKEY);
+      
+      if (!raw) {
+        localStorage.setItem(DATAKEY, JSON.stringify([]));
         setTimeout(() => {
           res({ status: true, data: [] });
-        }, 2000);
+        }, 1000);
+        return; 
       }
 
-      const data = JSON.parse(localStorage?.getItem(DATAKEY));
-      if (!data) {
-        rej({ status: false, data: [] });
-      }
-
+      const parsed = JSON.parse(raw);
       setTimeout(() => {
-        res({ status: true, data });
-      }, 2000);
+        res({ status: true, data: parsed || [] });
+      }, 1000);
     } catch (err) {
       rej({ status: false, data: [] });
     }
@@ -39,26 +37,30 @@ function App() {
 
   useEffect(() => {
     async function initMethod() {
-      setGobalLoading(true);
-      const data = await GetData();
-      setAllData(data?.data);
-      setGobalLoading(false);
+      try {
+        setGobalLoading(true);
+        const res = await GetData();
+        setAllData(res?.data || []);
+      } catch (error) {
+        console.error("Failed to load initial data:", error);
+        setAllData([]);
+      } finally {
+        setGobalLoading(false);
+      }
     }
 
-    return () => {
-      initMethod();
-    };
+    initMethod(); 
   }, []);
 
-function isEmpty(){
-  return allData?.length === 0
-}
+  function isEmpty() {
+    return allData?.length === 0;
+  }
 
   function insertData(data) {
-    const final = [...allData,data]
+    const final = [...allData, data];
     setAllData(final);
-    localStorage.setItem(DATAKEY,JSON.stringify(final));
-    toast.success("Memories Added successfully!")
+    localStorage.setItem(DATAKEY, JSON.stringify(final));
+    toast.success("Memories Added successfully!");
   }
 
   if (gobalLoading) {
@@ -68,7 +70,7 @@ function isEmpty(){
   return (
     <div className="w-full h-screen absolute left-0 top-0">
       <ToastContainer />
-      <DataContext.Provider value={{ allData,insertData, isEmpty}}>
+      <DataContext.Provider value={{ allData, insertData, isEmpty }}>
         <MainLayout logo={logo} />
       </DataContext.Provider>
     </div>
